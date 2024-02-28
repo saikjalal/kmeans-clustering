@@ -25,6 +25,7 @@ public:
 		this->id_point = id_point;
 		total_values = values.size();
 
+		//this can be parallelized
 		for(int i = 0; i < total_values; i++)
 			this->values.push_back(values[i]);
 
@@ -82,6 +83,7 @@ public:
 
 		int total_values = point.getTotalValues();
 
+		//this can be parallelized
 		for(int i = 0; i < total_values; i++)
 			central_values.push_back(point.getValue(i));
 
@@ -147,6 +149,7 @@ private:
 		double sum = 0.0, min_dist;
 		int id_cluster_center = 0;
 
+		//since counting the number of unique clusters, this can be parallelized
 		for(int i = 0; i < total_values; i++)
 		{
 			sum += pow(clusters[0].getCentralValue(i) -
