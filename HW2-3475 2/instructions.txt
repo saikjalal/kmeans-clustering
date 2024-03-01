@@ -128,6 +128,7 @@ Step 3: Test the provided serial k-means solution.
   The provided application loads the whole dataset at the beginning of the execution.
   Once compiled (and the binary "kmeans" is produced), I use the following command line:
   		cat datasets/XXXX.txt | ./kmeans
+      For my project, its cat datasets/XXXX.txt | ./obj64/kmeans-serial.exe
   Feel free to change it if you prefer another way.
 
 

@@ -1,6 +1,12 @@
 // Implementation of the KMeans Algorithm
 // reference: https://github.com/marcoscastro/kmeans
 
+/*
+Saik Jalal
+CSE375
+Programming Assignment #2 - Kmeans
+*/
+
 #include <iostream>
 #include <vector>
 #include <math.h>
@@ -8,6 +14,9 @@
 #include <time.h>
 #include <algorithm>
 #include <chrono>
+//TBB
+#include <tbb/parallel_for.h>
+#include <tbb/blocked_range.h>
 
 using namespace std;
 
@@ -149,8 +158,7 @@ private:
 
 		for(int i = 0; i < total_values; i++)
 		{
-			sum += pow(clusters[0].getCentralValue(i) -
-					   point.getValue(i), 2.0);
+			sum += pow(clusters[0].getCentralValue(i) - point.getValue(i), 2.0);
 		}
 
 		min_dist = sqrt(sum);
@@ -162,8 +170,7 @@ private:
 
 			for(int j = 0; j < total_values; j++)
 			{
-				sum += pow(clusters[i].getCentralValue(j) -
-						   point.getValue(j), 2.0);
+				sum += pow(clusters[i].getCentralValue(j) - point.getValue(j), 2.0);
 			}
 
 			dist = sqrt(sum);
@@ -189,6 +196,7 @@ public:
 
 	void run(vector<Point> & points)
 	{
+		//this is where phase 1 begins
         auto begin = chrono::high_resolution_clock::now();
         
 		if(K > total_points)
@@ -196,7 +204,23 @@ public:
 
 		vector<int> prohibited_indexes;
 
-		// choose K distinct values for the centers of the clusters
+		//
+		/*
+		tbb::parallel_for(0, total_points, [&](int i) {
+            int id_old_cluster = points[i].getCluster();
+            int id_nearest_center = getIDNearestCenter(points[i]);
+
+            if (id_old_cluster != id_nearest_center)
+            {
+                if (id_old_cluster != -1)
+                    clusters[id_old_cluster].removePoint(points[i].getID());
+
+                points[i].setCluster(id_nearest_center);
+                clusters[id_nearest_center].addPoint(points[i]);
+            }
+        });
+		*/
+		
 		for(int i = 0; i < K; i++)
 		{
 			while(true)
@@ -214,6 +238,7 @@ public:
 				}
 			}
 		}
+		
         auto end_phase1 = chrono::high_resolution_clock::now();
         
 		int iter = 1;
@@ -221,8 +246,27 @@ public:
 		while(true)
 		{
 			bool done = true;
+			/*
+			tbb::parallel_for(0, total_points, [&](int i) {
+                int id_old_cluster = points[i].getCluster();
+                int id_nearest_center = getIDNearestCenter(points[i]);
 
+                if(id_old_cluster != id_nearest_center)
+                {
+                    if(id_old_cluster != -1)
+                        clusters[id_old_cluster].removePoint(points[i].getID());
+
+                    points[i].setCluster(id_nearest_center);
+                    clusters[id_nearest_center].addPoint(points[i]);
+                    done = false;
+                }
+            });
+			*/
+
+
+			//parallelization can be done here with tbb
 			// associates each point to the nearest center
+			
 			for(int i = 0; i < total_points; i++)
 			{
 				int id_old_cluster = points[i].getCluster();
@@ -234,12 +278,28 @@ public:
 						clusters[id_old_cluster].removePoint(points[i].getID());
 
 					points[i].setCluster(id_nearest_center);
-					clusters[id_nea`rest_center].addPoint(points[i]);
+					clusters[id_nearest_center].addPoint(points[i]);
 					done = false;
 				}
 			}
+			
 
-			// recalculating the center of each cluster
+			/*
+			tbb::parallel_for(0, K, [&](int i) {
+                for(int j = 0; j < total_values; j++)
+                {
+                    int total_points_cluster = clusters[i].getTotalPoints();
+                    double sum = 0.0;
+
+                    if(total_points_cluster > 0)
+                    {
+                        for(int p = 0; p < total_points_cluster; p++)
+                            sum += clusters[i].getPoint(p).getValue(j);
+                        clusters[i].setCentralValue(j, sum / total_points_cluster);
+                    }
+                }
+            });
+			*/
 			for(int i = 0; i < K; i++)
 			{
 				for(int j = 0; j < total_values; j++)
@@ -255,6 +315,7 @@ public:
 					}
 				}
 			}
+			
 
 			if(done == true || iter >= max_iterations)
 			{
