@@ -2,7 +2,8 @@
 #CSE375
 #Programming Assignment #2 - Kmeans
 
-TARGETS = kmeans-serial
+TARGETS = kmeans-serial kmeans-parallel
+ # Kmeans-parallel generates the executable for the parallel version
  # TODO: put your file names here, *without a file extension*
 
 # names of .cc files that are used by all of the above targets
