@@ -226,6 +226,7 @@ public:
 		*/
  
 		#pragma omp parallel for
+		//creates multiple threads
     	for(int i = 0; i < K; i++)
     	{
        		bool found = false;
@@ -234,7 +235,7 @@ public:
             	int index_point = rand() % total_points;
 
             	bool is_prohibited = false;
-				
+
             	#pragma omp critical
             	{
                 	is_prohibited = (find(prohibited_indexes.begin(), prohibited_indexes.end(), index_point) != prohibited_indexes.end());
@@ -331,22 +332,26 @@ public:
 			// associates each point to the nearest center
 			
 			#pragma omp parallel for shared(done)
+			//when using done, that means the variable is shared between all the threads from omp parallel
             for(int i = 0; i < total_points; i++)
             {
-                int id_old_cluster = points[i].getCluster();
-                int id_nearest_center = getIDNearestCenter(points[i]);
+                int id_old_cluster = points[i].getCluster(); //get the id of the cluster
+                int id_nearest_center = getIDNearestCenter(points[i]); //get the closest center of the cluster
 
                 if(id_old_cluster != id_nearest_center)
                 {
                     #pragma omp critical
+					//
                     {
-                        if(id_old_cluster != -1)
+                        if(id_old_cluster != -1) //remove cluster
                             clusters[id_old_cluster].removePoint(points[i].getID());
 
                         points[i].setCluster(id_nearest_center);
                         clusters[id_nearest_center].addPoint(points[i]);
+						//this updates the cluster
                     }
-                    done = false;
+                    done = false; 
+					//done is shared with all threads
                 }
             }
 
@@ -370,17 +375,17 @@ public:
 			#pragma omp parallel for
             for(int i = 0; i < K; i++)
             {
-                for(int j = 0; j < total_values; j++)
+                for(int j = 0; j < total_values; j++) //iterate over cluters
                 {
-                    int total_points_cluster = clusters[i].getTotalPoints();
+                    int total_points_cluster = clusters[i].getTotalPoints(); //get the total in the current cluster
                     double sum = 0.0;
 
-                    if(total_points_cluster > 0)
+                    if(total_points_cluster > 0) //if 0
                     {
                         for(int p = 0; p < total_points_cluster; p++)
                             sum += clusters[i].getPoint(p).getValue(j);
                         
-                        clusters[i].setCentralValue(j, sum / total_points_cluster);
+                        clusters[i].setCentralValue(j, sum / total_points_cluster); //update central value
                     }
                 }
             }
