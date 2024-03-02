@@ -224,24 +224,42 @@ public:
             }
         });
 		*/
-		
-		for(int i = 0; i < K; i++)
-		{
-			while(true)
-			{
-				int index_point = rand() % total_points;
+ 
+		#pragma omp parallel for
+    	for(int i = 0; i < K; i++)
+    	{
+       		bool found = false;
+        	while(!found)
+        	{
+            	int index_point = rand() % total_points;
 
-				if(find(prohibited_indexes.begin(), prohibited_indexes.end(),
-						index_point) == prohibited_indexes.end())
-				{
-					prohibited_indexes.push_back(index_point);
-					points[index_point].setCluster(i);
-					Cluster cluster(i, points[index_point]);
-					clusters.push_back(cluster);
-					break;
-				}
-			}
-		}
+            	bool is_prohibited = false;
+				
+            	#pragma omp critical
+            	{
+                	is_prohibited = (find(prohibited_indexes.begin(), prohibited_indexes.end(), index_point) != prohibited_indexes.end());
+            	}
+
+            	if(!is_prohibited)
+            	{
+                
+                	#pragma omp critical
+                	{
+                    	prohibited_indexes.push_back(index_point); //pushback will begin adding the points to the indexes
+                	}
+
+                	points[index_point].setCluster(i);
+                	Cluster cluster(i, points[index_point]);
+
+                	#pragma omp critical
+                	{
+                    	clusters.push_back(cluster);
+                	}
+
+                	found = true; // this will exit the loop
+            	}
+        	}
+    	}
 		
         auto end_phase1 = chrono::high_resolution_clock::now();
         
@@ -312,24 +330,25 @@ public:
 			//parallelization can be done here with tbb
 			// associates each point to the nearest center
 			
-			for(int i = 0; i < total_points; i++)
-			{
-				int id_old_cluster = points[i].getCluster();
-				int id_nearest_center = getIDNearestCenter(points[i]);
+			#pragma omp parallel for shared(done)
+            for(int i = 0; i < total_points; i++)
+            {
+                int id_old_cluster = points[i].getCluster();
+                int id_nearest_center = getIDNearestCenter(points[i]);
 
-				if(id_old_cluster != id_nearest_center)
-				{
-					if(id_old_cluster != -1)
-						clusters[id_old_cluster].removePoint(points[i].getID());
+                if(id_old_cluster != id_nearest_center)
+                {
+                    #pragma omp critical
+                    {
+                        if(id_old_cluster != -1)
+                            clusters[id_old_cluster].removePoint(points[i].getID());
 
-					points[i].setCluster(id_nearest_center);
-					clusters[id_nearest_center].addPoint(points[i]);
-					done = false;
-				}
-			}
-			
-			
-			
+                        points[i].setCluster(id_nearest_center);
+                        clusters[id_nearest_center].addPoint(points[i]);
+                    }
+                    done = false;
+                }
+            }
 
 			/*
 			tbb::parallel_for(0, K, [&](int i) {
@@ -347,22 +366,24 @@ public:
                 }
             });
 			*/
-			
-			for(int i = 0; i < K; i++)
-			{
-				for(int j = 0; j < total_values; j++)
-				{
-					int total_points_cluster = clusters[i].getTotalPoints();
-					double sum = 0.0;
 
-					if(total_points_cluster > 0)
-					{
-						for(int p = 0; p < total_points_cluster; p++)
-							sum += clusters[i].getPoint(p).getValue(j);
-						clusters[i].setCentralValue(j, sum / total_points_cluster);
-					}
-				}
-			}
+			#pragma omp parallel for
+            for(int i = 0; i < K; i++)
+            {
+                for(int j = 0; j < total_values; j++)
+                {
+                    int total_points_cluster = clusters[i].getTotalPoints();
+                    double sum = 0.0;
+
+                    if(total_points_cluster > 0)
+                    {
+                        for(int p = 0; p < total_points_cluster; p++)
+                            sum += clusters[i].getPoint(p).getValue(j);
+                        
+                        clusters[i].setCentralValue(j, sum / total_points_cluster);
+                    }
+                }
+            }
 			
 			
 
