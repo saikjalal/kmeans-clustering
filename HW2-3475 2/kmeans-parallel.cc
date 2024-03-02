@@ -16,8 +16,11 @@ This is the parallel version!
 #include <algorithm>
 #include <chrono>
 //TBB
-#include <tbb/parallel_for.h>
-#include <tbb/blocked_range.h>
+//#include <tbb/parallel_for.h>
+//#include <tbb/blocked_range.h>
+//#include <tbb/task_group.h>
+#include <omp.h>
+//Decided to just use OpenMP
 
 using namespace std;
 
@@ -263,6 +266,47 @@ public:
                 }
             });
 			*/
+			
+
+			//tbb::parallel_for(tbb::blocked_range<size_t>(0, points.size()), [&](const tbb::blocked_range<size_t>&))
+
+			/*
+			tbb::parallel_for(tbb::blocked_range<size_t>(0, points.size()), [&](const tbb::blocked_range<size_t>& r) {
+                    for (size_t i = r.begin(); i != r.end(); ++i) {
+                        int id_old_cluster = points[i].getCluster();
+                        int id_nearest_center = getIDNearestCenter(points[i]);
+
+                        if(id_old_cluster != id_nearest_center) {
+                            if(id_old_cluster != -1)
+                                clusters[id_old_cluster].removePoint(points[i].getID());
+
+                            points[i].setCluster(id_nearest_center);
+                            clusters[id_nearest_center].addPoint(points[i]);
+                            done = false;
+                        }
+                    }
+                });
+			*/
+
+			/*
+
+            tbb::parallel_for(tbb::blocked_range<size_t>(0, clusters.size()), [&](const tbb::blocked_range<size_t>& r) {
+                    for (size_t i = r.begin(); i != r.end(); ++i) {
+                        for(int j = 0; j < total_values; j++) {
+                            int total_points_cluster = clusters[i].getTotalPoints();
+                            double sum = 0.0;
+
+                            if(total_points_cluster > 0) {
+                                for(int p = 0; p < total_points_cluster; p++)
+                                    sum += clusters[i].getPoint(p).getValue(j);
+                                clusters[i].setCentralValue(j, sum / total_points_cluster);
+                            }
+                        }
+                    }
+                });
+				*/
+               
+			
 
 
 			//parallelization can be done here with tbb
@@ -284,6 +328,8 @@ public:
 				}
 			}
 			
+			
+			
 
 			/*
 			tbb::parallel_for(0, K, [&](int i) {
@@ -301,6 +347,7 @@ public:
                 }
             });
 			*/
+			
 			for(int i = 0; i < K; i++)
 			{
 				for(int j = 0; j < total_values; j++)
@@ -316,6 +363,7 @@ public:
 					}
 				}
 			}
+			
 			
 
 			if(done == true || iter >= max_iterations)
